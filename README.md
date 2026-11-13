@@ -1,87 +1,80 @@
-# Biblioteca Vendas — orientação a objetos e MySQL
+# Biblioteca Vendas
 
-Projeto didático de venda de livros, estruturado para demonstrar as classes e conceitos da Etapa 2.
+Aplicação web de livraria em PHP 8.1+, MySQL/InnoDB e um adaptador Java/Spring Boot opcional para Senior X. Mantém o projeto PHP existente como loja e fonte principal dos dados; a integração Java continua separada.
 
 ## Requisitos
 
-- PHP 8.1 ou superior
-- MySQL 8.0 ou superior
-- Extensão PDO MySQL habilitada
+- PHP 8.1 ou superior, com PDO MySQL.
+- MySQL 8.0 ou MariaDB com InnoDB.
+- Java 17 e Maven para executar o adaptador Senior opcional.
 
-## Preparar o banco
+## Instalação em banco novo
 
-1. Inicie o MySQL, por exemplo pelo XAMPP.
-2. Importe database/schema.sql no phpMyAdmin ou cliente MySQL. O script cria o banco biblioteca_vendas, as tabelas e produtos de demonstração.
-3. Copie .env.example para .env e ajuste usuário e senha conforme seu MySQL.
+1. Inicie o MySQL e importe `database/schema.sql`. Ele cria o banco `biblioteca_vendas`, tabelas do catálogo, pedidos, pagamentos, contas da equipe e trilha de estoque.
+2. Copie `.env.example` para `.env` e configure a conexão local. Não publique `.env`, credenciais nem tokens.
+3. Crie o primeiro administrador no terminal, na raiz do projeto: `php scripts/criar_admin.php`. O script pergunta os dados; não passe a senha como argumento. Após criar a conta, remova ou proteja o script no servidor publicado.
+4. Inicie a aplicação com `php -S 127.0.0.1:8000 -t public` e abra `http://127.0.0.1:8000`.
+5. Acesse a gestão em `http://127.0.0.1:8000/admin_login.php`.
 
-Para uma instalação existente, não importe schema.sql de novo. Faça backup e aplique uma única vez a migração descrita em `database/migrate_mercadopago_sandbox.sql`.
+O `.env` é local e ignorado pelo Git. Mantenha credenciais reais fora do repositório.
 
-Exemplo para XAMPP local: usuário root e senha vazia. Use isso somente em ambiente local.
+## Atualizar banco existente
 
-## Executar localmente
+Faça backup antes de qualquer alteração. As migrações são pontuais e não devem ser repetidas.
 
-Na pasta do projeto, rode:
+1. Para uma instalação anterior ao checkout Mercado Pago, aplique `database/migrate_mercadopago_sandbox.sql` se as colunas de método e detalhe de pagamento ainda não existirem.
+2. Se a tabela da integração Senior ainda não existir, aplique `database/migrate_senior_erp.sql`.
+3. Aplique uma única vez `database/migrate_gestao_catalogo.sql` para adicionar os metadados dos livros, usuários da equipe e histórico de estoque.
+4. Crie o primeiro administrador com `php scripts/criar_admin.php`.
 
-    php -S 127.0.0.1:8000 -t public
+Não importe `schema.sql` sobre uma instalação existente. A migração de catálogo adiciona ISBN único; resolva manualmente eventuais duplicatas antes de qualquer adaptação local da migração.
 
-Abra http://127.0.0.1:8000.
+## Funcionalidades
 
-## Simulação local de compra
+- Catálogo público de livros com preço, autor, categoria, ISBN e dados bibliográficos.
+- Consulta de metadados por ISBN no Google Books dentro da sessão da equipe; os dados são conferidos e gravados pela equipe.
+- Painel de gestão com indicadores do mês, livros ativos, estoque e alertas de estoque mínimo.
+- Cadastro e edição de livros, ativação/desativação de itens, entrada/saída de estoque, localização e trilha de movimentações vinculada à equipe.
+- Login administrativo com `password_hash`/`password_verify`, bloqueio temporário após tentativas inválidas, CSRF, cookies HttpOnly e autorização validada no servidor.
+- Administrador inicial por script CLI; administradores podem criar contas de equipe e outros administradores.
+- Histórico resumido de vendas e exportação CSV disponível somente para a equipe autenticada.
+- Compra de teste no modo local ou no sandbox Mercado Pago; o catálogo e o painel não oferecem operação real de cobrança.
+- Notificação de pagamento Mercado Pago validada por assinatura, consulta do pagamento ao provedor, conferência do pedido, moeda, valor e modo de teste. O processamento idempotente atualiza o pedido e a trilha de estoque.
+- Integração Senior X opcional por adaptador Java já existente; pedidos pagos podem ser enviados quando as credenciais empresariais forem configuradas.
 
-1. Adicione um livro ao carrinho.
-2. Selecione crédito, débito ou Pix e escolha o resultado simulado.
-3. Para Pix, a compra começa pendente; use “Simular confirmação do Pix” para aprovar ou recusar.
-4. A simulação grava o pedido e o resultado no banco local para validar o fluxo. O código Pix exibido é fictício e não pode ser pago.
+## Simulação local e sandbox
 
-O modo padrão é `PAYMENT_MODE=simulado_local`, disponível apenas por acesso local (`127.0.0.1`/`localhost`). Ele não chama o Mercado Pago, não usa credenciais e não realiza cobrança. Uma aprovação simulada reduz o estoque; uma recusa o devolve.
+Por padrão, `PAYMENT_MODE=simulado_local` não chama provedores e não movimenta dinheiro. O resultado do cartão pode ser escolhido na interface de simulação; Pix começa pendente e pode ser confirmado pelo botão de teste. Uma recusa repõe o estoque e registra o estorno na trilha.
 
-O formulário local permite selecionar cartões de teste oficiais de crédito (Mastercard, Visa e American Express) e débito (Elo), com campos para número, validade e código de segurança. Esses campos são validados no navegador e não são enviados ao servidor. O resultado aprovado/recusado é escolhido no seletor da simulação; isso não consulta o Mercado Pago. Consulte a [lista oficial de cartões de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/integration-test/test-cards?scope=prod).
+Para o sandbox externo, configure `PAYMENT_MODE=mercadopago_test`, `MP_TEST_PUBLIC_KEY` e `MP_TEST_ACCESS_TOKEN` com credenciais de teste. O formulário do Mercado Pago tokeniza os dados do cartão; o projeto não deve receber nem armazenar número, validade ou CVV. Use somente cartões de teste fornecidos pela [documentação do Mercado Pago](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/integration-test/test-cards).
 
-Para uma instalação existente, faça backup e aplique uma única vez `database/migrate_mercadopago_sandbox.sql`, que adiciona os campos usados para registrar método e status do pagamento.
+Para confirmação automática opcional do sandbox, defina `MP_TEST_WEBHOOK_SECRET` com o segredo de assinatura e configure a URL pública de teste como `https://SEU_HOST/mercadopago_webhook.php` nas notificações do Mercado Pago. Em `localhost`, o provedor não consegue alcançar o endpoint. A configuração valida `x-signature` com HMAC-SHA256 e consulta o estado do pagamento à API antes de atualizar o pedido. Consulte a [documentação oficial de Webhooks](https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks). Não use credenciais de produção neste projeto.
 
-### Sandbox opcional do Mercado Pago
+## Acesso administrativo
 
-Para testar a integração externa, configure `PAYMENT_MODE=mercadopago_test`, `MP_TEST_PUBLIC_KEY` e `MP_TEST_ACCESS_TOKEN` no `.env` local, usando apenas credenciais do ambiente Teste. Nunca envie o Access Token pelo chat nem o publique no GitHub. Use os dados indicados na [documentação oficial de compras de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/integration-test/test-payment-flow). O status Pix é consultado manualmente; este projeto não configura webhook.
+- Login: `/admin_login.php`.
+- Painel: `/admin.php`.
+- Consulta Google Books por ISBN: disponível no formulário de cadastro autenticado.
+- CSV de vendas: `/exportar_vendas.php`, protegido por autenticação da equipe.
 
-No modo `mercadopago_test`, o formulário oficial do Mercado Pago coleta e tokeniza os dados do cartão. A loja envia ao Java somente o identificador e o status do pagamento, nunca o número, a validade, o CVV ou o token do cartão.
+O primeiro administrador é criado pelo script CLI. Leitores da loja não recebem acesso à equipe. A conta pública do catálogo não exige cadastro para navegação; compras de teste coletam apenas os dados necessários para o pedido.
 
-## Integração com Senior X usando Java
+## Senior X / Java
 
-O projeto `Livraria-2.0-main` enviado como ZIP é um aplicativo de terminal com dados em memória. A loja PHP e MySQL continua sendo a aplicação web e a fonte dos pedidos; a nova pasta `integracao-senior-java` aproveita os conceitos de `Livro`, `Cliente` e `Venda` em um adaptador Java separado, com valores monetários em centavos e integração REST. Isso evita manter dois catálogos e estoques independentes.
+O diretório `integracao-senior-java` mantém o adaptador Spring Boot existente. A loja PHP/MySQL é a fonte de pedidos, catálogo e estoque; o Java encaminha pedidos aprovados ao Senior X pela API configurada, sem acesso SQL direto ao ERP.
 
-O adaptador Java recebe pedidos somente quando o sandbox do Mercado Pago confirma aprovação e os envia à API e-commerce do Senior X como `PAID`. O código do produto da loja (`produtos.codigo`) é enviado como SKU; ele precisa corresponder ao SKU cadastrado no Senior. Também é necessário informar o `SENIOR_COMPANY_ID` correto da empresa. O adaptador consulta o pedido pelo ID externo antes de criar, para evitar duplicatas em uma nova tentativa.
+Para ativar, configure no `.env` apenas as credenciais fornecidas pela empresa (`SENIOR_*`) e `SENIOR_SYNC_ENABLED=true`, `SENIOR_INTEGRATION_ENABLED=true`. Use `SENIOR_BRIDGE_API_KEY` como segredo compartilhado entre PHP e Java. Com Java 17+ e Maven, inicie o serviço de dentro de `integracao-senior-java` usando `mvn spring-boot:run`. A sincronização permanece desativada até que o acesso, a empresa e os SKUs estejam configurados.
 
-Para ativar o fluxo local:
+## Verificações
 
-1. Faça backup do banco e execute `database/migrate_senior_erp.sql` uma vez. Em um banco novo, a tabela já é criada por `database/schema.sql`.
-2. No `.env` local, configure as credenciais de teste do Mercado Pago e `PAYMENT_MODE=mercadopago_test`.
-3. Configure o tenant, a chave da aplicação, o segredo, o `SENIOR_COMPANY_ID` e o `SENIOR_CLIENT_ID` fornecidos pelo administrador do Senior X. Não envie esses valores pelo chat nem os publique no GitHub.
-4. Defina `SENIOR_SYNC_ENABLED=true` e `SENIOR_INTEGRATION_ENABLED=true`. Gere uma chave local para `SENIOR_BRIDGE_API_KEY`; o PHP e o Java leem o mesmo `.env`.
-5. Com Java 17+ e Maven instalados, abra um terminal em `integracao-senior-java` e execute `mvn spring-boot:run`. O serviço escuta apenas em `127.0.0.1:8091` por padrão.
-6. Inicie a loja PHP. Após uma aprovação no sandbox, consulte o recibo: ele informa se o pedido chegou ao Senior X e permite tentar novamente em caso de falha.
+Execute `php tests/php/run.php` para conferir a validação de ISBN e assinatura de webhook. O GitHub Actions também faz lint dos arquivos PHP e executa os testes Java/Maven do adaptador. Essas verificações não conectam ao MySQL, Mercado Pago ou Senior X.
 
-Se a API e-commerce ou o ambiente de teste do Senior X ainda não estiverem habilitados para a empresa, a sincronização permanecerá pendente até o administrador fornecer o acesso e o mapeamento de empresa/SKUs. A integração não altera o banco do Senior por SQL; usa a API oficial configurada.
+O GitHub Pages não executa PHP nem fornece MySQL. Para testar a loja em navegador, use o servidor PHP local ou hospedagem com PHP, MySQL e HTTPS público para notificações do provedor.
 
-## Classes e conceitos
+## Limites
 
-- Produto: código, nome, preço em centavos e estoque; propriedades privadas e validação.
-- Cliente: nome, identificação e e-mail.
-- ItemPedido: compõe um produto e a quantidade comprada.
-- CarrinhoDeCompras: mantém itens e calcula o total.
-- Pedido: compõe cliente e itens, com transições controladas por StatusPedido.
-- VendaService: reserva estoque em transação, registra o pedido e aplica o resultado do pagamento.
-- GatewayPagamento: interface consumida pelo serviço. PagamentoSimulado executa o modo local; MercadoPagoGateway conecta ao sandbox opcional.
-- Recibo: representa as informações mostradas após a venda.
-- StatusPedido e StatusPagamento: enums para estados válidos.
-
-O total é calculado no servidor com os preços do banco. A chave de idempotência evita pedidos duplicados ao reenviar o formulário.
-
-## Antes de produção
-
-Esta integração está configurada apenas para testes. Para receber dinheiro real, use credenciais de produção em uma implantação separada com HTTPS, webhook validado, reconciliação, estornos e tratamento de falhas. Não armazene dados de cartão.
-
-## Validações automáticas no GitHub
-
-O fluxo `.github/workflows/ci.yml` verifica a sintaxe dos arquivos PHP e executa `mvn verify` com Java 17 para compilar o adaptador Senior e rodar os testes automatizados. Essas verificações não conectam ao Mercado Pago nem ao Senior X; para isso, use credenciais de sandbox configuradas apenas no ambiente local. O fluxo começa depois que este projeto estiver em um repositório GitHub e receber um push ou pull request.
-
-O GitHub Pages não executa o PHP nem hospeda o banco MySQL. O workflow acima apenas confere o código; para abrir a loja e testar compras no navegador, mantenha o ambiente local ou publique a aplicação em uma hospedagem que ofereça PHP e MySQL.
+- O gateway externo está restrito ao ambiente de teste; não configura vendas reais.
+- O histórico de estoque registra entradas/saídas administrativas, reservas, vendas confirmadas e estornos; ajustes devem ser feitos no painel para preservar a auditoria.
+- Os metadados do Google Books podem estar incompletos; confira os campos antes de salvar.
+- A área de pedidos é um resumo administrativo; não implementa emissão fiscal, logística ou processo de devolução.
+- Faça backup antes de cada migração e teste a instalação no seu próprio banco antes de publicar.
