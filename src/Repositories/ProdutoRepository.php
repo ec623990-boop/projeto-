@@ -8,6 +8,8 @@ use PDO;
 
 final class ProdutoRepository
 {
+    private ?array $colunasProdutos = null;
+
     public function __construct(private PDO $pdo) {}
 
     /** @return array<int, Produto> */
@@ -27,12 +29,22 @@ final class ProdutoRepository
 
         $termo = strtr($termo, ['!' => '!!', '%' => '!%', '_' => '!_']);
         $like = '%' . $termo . '%';
+        $colunasPesquisaveis = array_values(array_intersect(
+            ['nome', 'autor', 'categoria', 'isbn', 'codigo'],
+            array_keys($this->colunasProdutos())
+        ));
+        if ($colunasPesquisaveis === []) return [];
+
+        $condicoes = array_map(
+            static fn (string $coluna): string => $coluna . " LIKE ? ESCAPE '!'",
+            $colunasPesquisaveis
+        );
         $stmt = $this->pdo->prepare(
             "SELECT * FROM produtos
-             WHERE ativo = 1 AND (nome LIKE ? ESCAPE '!' OR autor LIKE ? ESCAPE '!' OR categoria LIKE ? ESCAPE '!' OR isbn LIKE ? ESCAPE '!' OR codigo LIKE ? ESCAPE '!')
+             WHERE ativo = 1 AND (" . implode(' OR ', $condicoes) . ")
              ORDER BY nome LIMIT 100"
         );
-        $stmt->execute([$like, $like, $like, $like, $like]);
+        $stmt->execute(array_fill(0, count($colunasPesquisaveis), $like));
         return array_map(fn (array $row): Produto => $this->mapear($row), $stmt->fetchAll());
     }
 
@@ -84,5 +96,15 @@ final class ProdutoRepository
             isset($row['estoque_minimo']) ? (int) $row['estoque_minimo'] : 2,
             $row['localizacao'] ?? null
         );
+    }
+
+    /** @return array<string, int> */
+    private function colunasProdutos(): array
+    {
+        if ($this->colunasProdutos === null) {
+            $nomes = $this->pdo->query('SHOW COLUMNS FROM produtos')->fetchAll(PDO::FETCH_COLUMN);
+            $this->colunasProdutos = array_fill_keys($nomes, 1);
+        }
+        return $this->colunasProdutos;
     }
 }
