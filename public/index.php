@@ -15,6 +15,9 @@ require_once dirname(__DIR__) . '/src/bootstrap.php';
 session_start();
 
 if (empty($_SESSION['chave_pedido'])) $_SESSION['chave_pedido'] = bin2hex(random_bytes(32));
+$avisoCatalogo = (string) ($_SESSION['aviso_livro_demo'] ?? '');
+$erroCatalogo = (string) ($_SESSION['erro_livro_demo'] ?? '');
+unset($_SESSION['aviso_livro_demo'], $_SESSION['erro_livro_demo']);
 
 $erro = '';
 $buscaCatalogo = Texto::cortar(trim((string) ($_GET['q'] ?? '')), 0, 100);
@@ -99,6 +102,7 @@ try {
 }
 
 $csrf = Seguranca::tokenCsrf();
+$importacaoDemoAtiva = $paymentMode === 'simulado_local' && SimulacaoLocal::requisicaoLocal();
 $itensCarrinho = $carrinho->itens();
 if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
 ?>
@@ -131,6 +135,8 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
         <section class="aviso"><strong>Checkout indisponível:</strong> configure um modo de teste válido para continuar.</section>
     <?php endif; ?>
     <?php if ($erro !== ''): ?><div class="mensagem mensagem--erro"><?= Seguranca::escapar($erro) ?></div><?php endif; ?>
+    <?php if ($avisoCatalogo !== ''): ?><div class="mensagem"><?= Seguranca::escapar($avisoCatalogo) ?></div><?php endif; ?>
+    <?php if ($erroCatalogo !== ''): ?><div class="mensagem mensagem--erro"><?= Seguranca::escapar($erroCatalogo) ?></div><?php endif; ?>
 
     <?php if ($pedidoRecibo): ?>
         <?php $statusLabel = match ($pedidoRecibo->status) {
@@ -193,6 +199,20 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
                 <?php if ($buscaCatalogo !== ''): ?><a class="botao botao--claro" href="index.php#catalogo">Limpar</a><?php endif; ?>
             </div>
         </form>
+        <section class="painel busca-internet" id="busca-internet" data-csrf="<?= Seguranca::escapar($csrf) ?>" data-importacao-ativa="<?= $importacaoDemoAtiva ? 'true' : 'false' ?>" data-auto="<?= $buscaCatalogo !== '' && $produtos === [] ? 'true' : 'false' ?>">
+            <div class="secao-titulo"><div><p class="eyebrow">Pesquisa na internet</p><h3>Não encontrou no estoque?</h3></div></div>
+            <p class="muted">Busque no Open Library e adicione livros ao estoque de demonstração. O preço e as unidades são fictícios e ajustáveis; a compra fica restrita à simulação local.</p>
+            <form id="busca-internet-form" class="catalogo-busca" role="search">
+                <label for="busca-internet-termo">Título, autor ou ISBN</label>
+                <div class="catalogo-busca__linha">
+                    <input id="busca-internet-termo" type="search" minlength="2" maxlength="120" value="<?= Seguranca::escapar($buscaCatalogo) ?>" placeholder="Ex.: Dom Quixote ou Miguel de Cervantes" required>
+                    <button id="busca-internet-submit" class="botao" type="submit">Buscar na internet</button>
+                </div>
+            </form>
+            <p id="busca-internet-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="busca-internet-resultados" class="livros-resultados" aria-live="polite"></div>
+            <p class="muted busca-internet__fonte">Dados bibliográficos e capas: <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer">Open Library</a>. Pagamentos e estoque desta seção são fictícios para teste.</p>
+        </section>
         <div class="catalogo-cadastro">
             <p class="muted">É da equipe? Pesquise novos títulos e cadastre preço, estoque e capa para publicar na loja.</p>
             <a class="botao" href="admin_login.php?destino=buscar-livros">Buscar e cadastrar livro</a>
@@ -208,9 +228,10 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
                         <?php else: ?>
                             <div class="produto__capa produto__capa--vazia" aria-label="Capa não cadastrada">📚</div>
                         <?php endif; ?>
-                        <div><p class="codigo"><?= Seguranca::escapar($produto->codigo()) ?></p><h3><?= Seguranca::escapar($produto->nome()) ?></h3>
+                        <div><?php if (str_starts_with($produto->codigo(), 'DEMO-')): ?><p class="status status--pendente">Item de demonstração · estoque fictício</p><?php endif; ?><p class="codigo"><?= Seguranca::escapar($produto->codigo()) ?></p><h3><?= Seguranca::escapar($produto->nome()) ?></h3>
                             <?php if ($produto->autor()): ?><p class="muted"><?= Seguranca::escapar($produto->autor()) ?></p><?php endif; ?>
                             <?php if ($produto->categoria() || $produto->anoPublicacao()): ?><p class="muted"><?= Seguranca::escapar(implode(' · ', array_filter([$produto->categoria(), $produto->anoPublicacao() ? (string) $produto->anoPublicacao() : null]))) ?></p><?php endif; ?>
+                            <?php if ($produto->descricao()): ?><p class="produto__sinopse"><?= Seguranca::escapar(Texto::cortar($produto->descricao(), 0, 240)) ?><?= Texto::comprimento($produto->descricao()) > 240 ? '…' : '' ?></p><?php endif; ?>
                             <p class="preco"><?= Seguranca::dinheiro($produto->precoCentavos()) ?></p>
                             <p class="muted">Estoque: <?= $produto->estoque() ?></p>
                         </div>
@@ -672,5 +693,6 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
     </section>
 </main>
 <footer class="rodape">Biblioteca Vendas · Demonstração acadêmica de classes e orientação a objetos</footer>
+<script src="assets/catalogo.js" defer></script>
 </body>
 </html>

@@ -20,19 +20,21 @@ O `.env` é local e ignorado pelo Git. Mantenha credenciais reais fora do reposi
 
 ## Atualizar banco existente
 
-Faça backup antes de qualquer alteração. As migrações são pontuais e não devem ser repetidas.
+Faça backup antes de qualquer alteração. Para bancos existentes, execute o verificador seguro da aplicação. Ele identifica itens ausentes e só altera o banco depois que você confirma com a palavra APLICAR.
 
 1. Para uma instalação anterior ao checkout Mercado Pago, aplique `database/migrate_mercadopago_sandbox.sql` se as colunas de método e detalhe de pagamento ainda não existirem.
 2. Se a tabela da integração Senior ainda não existir, aplique `database/migrate_senior_erp.sql`.
-3. Aplique uma única vez `database/migrate_gestao_catalogo.sql` para adicionar os metadados dos livros, usuários da equipe e histórico de estoque.
-4. Crie o primeiro administrador com `php scripts/criar_admin.php`.
+3. Na raiz do projeto, execute `php scripts/migrar_gestao_catalogo.php`, revise as alterações propostas e digite APLICAR somente depois do backup.
+4. Crie o primeiro administrador com `php scripts/criar_admin.php` ou pela página local `/configurar_admin.php`.
+
+`database/migrate_gestao_catalogo.sql` é a migração manual antiga, não idempotente. Não a execute se alguma das colunas ou tabelas que ela cria já existir.
 
 Não importe `schema.sql` sobre uma instalação existente. A migração de catálogo adiciona ISBN único; resolva manualmente eventuais duplicatas antes de qualquer adaptação local da migração.
 
 ## Funcionalidades
 
 - Catálogo público de livros com preço, autor, categoria, ISBN e dados bibliográficos.
-- Busca manual de livros por título, autor ou ISBN usando a [API Search do Open Library](https://openlibrary.org/dev/docs/api/search), dentro da sessão da equipe. A equipe confere os metadados, define preço e estoque e publica o livro no catálogo.
+- Busca de livros na internet por título, autor ou ISBN usando a [API Search do Open Library](https://openlibrary.org/dev/docs/api/search). No modo local de simulação, o resultado pode ser incluído como estoque fictício com preço ajustável, capa e descrição quando disponíveis; esse item segue pelo carrinho e checkout simulado. A área administrativa também permite conferir e cadastrar livros no acervo.
 - Capas retornadas pelo catálogo ou informadas por URL aparecem no painel e nas vitrines da loja; as capas públicas usam o [Covers API do Open Library](https://openlibrary.org/dev/docs/api/covers). O catálogo permite filtrar livros por título, autor, categoria, código ou ISBN.
 - Painel de gestão com indicadores do mês, livros ativos, estoque e alertas de estoque mínimo.
 - Cadastro e edição de livros, ativação/desativação de itens, entrada/saída de estoque, localização e trilha de movimentações vinculada à equipe.
@@ -78,6 +80,6 @@ O GitHub Pages não executa PHP nem fornece MySQL. Para testar a loja em navegad
 
 - O gateway externo está restrito ao ambiente de teste; não configura vendas reais.
 - O histórico de estoque registra entradas/saídas administrativas, reservas, vendas confirmadas e estornos; ajustes devem ser feitos no painel para preservar a auditoria.
-- Os metadados e capas do Open Library podem estar incompletos; confira os campos antes de salvar. A busca é manual, autenticada e limitada a uma consulta por segundo por sessão; não use como coleta em massa.
+- Os metadados e capas do Open Library podem estar incompletos; confira os dados e a sinopse quando disponíveis. O estoque e o preço importados pela loja são fictícios e só podem ser adicionados no servidor local com `PAYMENT_MODE=simulado_local`; não representam livros físicos disponíveis para venda real.
 - A área de pedidos é um resumo administrativo; não implementa emissão fiscal, logística ou processo de devolução.
 - Faça backup antes de cada migração e teste a instalação no seu próprio banco antes de publicar.

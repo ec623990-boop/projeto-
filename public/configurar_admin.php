@@ -68,7 +68,7 @@ try {
 } catch (PDOException $e) {
     error_log('Falha na configuração inicial do administrador: ' . $e->getMessage());
     $erro = match ((string) $e->getCode()) {
-        '42S02' => 'A tabela da equipe não existe neste banco. Faça backup e confira se a migração database/migrate_gestao_catalogo.sql já foi aplicada. Não a execute novamente se as colunas ou tabelas dela já existirem.',
+        '42S02' => 'A tabela da equipe ainda não existe neste banco. Faça um backup completo e execute php scripts/migrar_gestao_catalogo.php no terminal; ele verifica as partes já existentes e pede confirmação antes de adicionar somente o que falta.',
         '1049' => 'O banco configurado não existe. Confira o nome em .env; importe schema.sql somente ao preparar um banco novo.',
         '2002', '2003' => 'Não foi possível conectar ao MySQL. Inicie o serviço e confira a conexão configurada em .env.',
         default => 'Não foi possível consultar o banco. Confira a configuração e as migrações antes de tentar novamente.',
