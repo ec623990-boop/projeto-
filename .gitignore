@@ -1,0 +1,6 @@
+.env
+/vendor/
+*.log
+integracao-senior-java/target/
+*.iml
+.idea/
