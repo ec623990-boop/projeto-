@@ -103,6 +103,10 @@ final class VendaService
             $decrease = $this->pdo->prepare(
                 'UPDATE produtos SET estoque = estoque - ? WHERE id = ? AND estoque >= ?'
             );
+            $movement = $this->pdo->prepare(
+                "INSERT INTO movimentacoes_estoque (produto_id, pedido_id, tipo, quantidade, observacao)
+                 VALUES (?, ?, 'reserva_venda', ?, 'Reserva automática do pedido')"
+            );
 
             foreach ($orderItems as $item) {
                 $product = $item->produto();
@@ -114,6 +118,7 @@ final class VendaService
                 if ($decrease->rowCount() !== 1) {
                     throw new DomainException('O estoque mudou durante a compra. Atualize o carrinho.');
                 }
+                $movement->execute([$product->id(), $orderId, $item->quantidade()]);
             }
 
             $this->pdo->commit();
@@ -195,6 +200,7 @@ final class VendaService
                 $update = $this->pdo->prepare(
                     "UPDATE pedidos SET status = 'pago', pago_em = CURRENT_TIMESTAMP WHERE id = ?"
                 );
+                $this->pdo->prepare("UPDATE movimentacoes_estoque SET tipo = 'venda', observacao = 'Venda confirmada pelo pagamento' WHERE pedido_id = ? AND tipo = 'reserva_venda'")->execute([$pedido->id()]);
             } elseif ($resultado->status === StatusPagamento::RECUSADO) {
                 $pedido->cancelar();
                 $restore = $this->pdo->prepare(
@@ -202,6 +208,12 @@ final class VendaService
                      SET p.estoque = p.estoque + i.quantidade WHERE i.pedido_id = ?'
                 );
                 $restore->execute([$pedido->id()]);
+                $movement = $this->pdo->prepare(
+                    "INSERT INTO movimentacoes_estoque (produto_id, pedido_id, tipo, quantidade, observacao)
+                     SELECT produto_id, pedido_id, 'estorno_venda', quantidade, 'Estorno automático de pagamento recusado'
+                     FROM movimentacoes_estoque WHERE pedido_id = ? AND tipo = 'reserva_venda'"
+                );
+                $movement->execute([$pedido->id()]);
                 $update = $this->pdo->prepare("UPDATE pedidos SET status = 'cancelado' WHERE id = ?");
             }
             if (isset($update)) $update->execute([$pedido->id()]);

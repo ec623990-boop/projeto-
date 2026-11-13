@@ -101,7 +101,7 @@ final class MercadoPagoGateway implements GatewayPagamento
         return $this->resultado($response, $methodId);
     }
 
-    public function consultar(string $paymentId, int $pedidoId): ResultadoPagamento
+    public function consultar(string $paymentId, int $pedidoId, ?int $valorEsperadoCentavos = null): ResultadoPagamento
     {
         $this->validarConfiguracao();
         if (!ctype_digit($paymentId)) throw new DomainException('Identificador de pagamento inválido.');
@@ -109,6 +109,12 @@ final class MercadoPagoGateway implements GatewayPagamento
         $response = $this->request('GET', '/v1/payments/' . rawurlencode($paymentId));
         if ((string) ($response['external_reference'] ?? '') !== (string) $pedidoId) {
             throw new DomainException('O pagamento consultado não corresponde a este pedido.');
+        }
+        if (strtoupper((string) ($response['currency_id'] ?? '')) !== 'BRL' || !array_key_exists('live_mode', $response) || $response['live_mode'] !== false) {
+            throw new DomainException('O pagamento não pertence ao ambiente brasileiro de teste esperado.');
+        }
+        if ($valorEsperadoCentavos !== null && (int) round(((float) ($response['transaction_amount'] ?? 0)) * 100) !== $valorEsperadoCentavos) {
+            throw new DomainException('O valor recebido pelo Mercado Pago não corresponde ao total do pedido.');
         }
 
         return $this->resultado($response);
