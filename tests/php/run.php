@@ -4,6 +4,7 @@ declare(strict_types=1);
 use BibliotecaVendas\Support\Isbn;
 use BibliotecaVendas\Support\MercadoPagoWebhookSignature;
 use BibliotecaVendas\Support\Texto;
+use BibliotecaVendas\Services\CatalogoLivrosClient;
 
 require_once dirname(__DIR__, 2) . '/src/bootstrap.php';
 
@@ -19,6 +20,16 @@ $assert(!Isbn::valido('978-0-306-40615-8'), 'ISBN com dígito verificador incorr
 $assert(!Isbn::valido('12345'), 'ISBN incompleto deve ser rejeitado.');
 $assert(Texto::comprimento('ação') === 4, 'Contagem de caracteres UTF-8 deve ser correta sem mbstring.');
 $assert(Texto::cortar('ação', 0, 2) === 'aç', 'Corte de texto UTF-8 não deve quebrar caracteres.');
+
+$booksClient = new CatalogoLivrosClient();
+foreach (['', 'x'] as $termoInvalido) {
+    try {
+        $booksClient->buscarPorTermo($termoInvalido);
+        $assert(false, 'Busca bibliográfica curta deve ser rejeitada sem consultar o serviço.');
+    } catch (DomainException) {
+        $assert(true, 'Busca bibliográfica curta é rejeitada.');
+    }
+}
 
 $secret = 'segredo-de-teste';
 $requestId = 'req-123';

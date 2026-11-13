@@ -19,6 +19,23 @@ final class ProdutoRepository
         return array_map(fn (array $row): Produto => $this->mapear($row), $rows);
     }
 
+    /** @return array<int, Produto> */
+    public function buscarAtivos(string $termo): array
+    {
+        $termo = trim($termo);
+        if ($termo === '') return $this->listarAtivos();
+
+        $termo = strtr($termo, ['!' => '!!', '%' => '!%', '_' => '!_']);
+        $like = '%' . $termo . '%';
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM produtos
+             WHERE ativo = 1 AND (nome LIKE ? ESCAPE '!' OR autor LIKE ? ESCAPE '!' OR categoria LIKE ? ESCAPE '!' OR isbn LIKE ? ESCAPE '!' OR codigo LIKE ? ESCAPE '!')
+             ORDER BY nome LIMIT 100"
+        );
+        $stmt->execute([$like, $like, $like, $like, $like]);
+        return array_map(fn (array $row): Produto => $this->mapear($row), $stmt->fetchAll());
+    }
+
     public function buscarPorId(int $id): ?Produto
     {
         $stmt = $this->pdo->prepare(

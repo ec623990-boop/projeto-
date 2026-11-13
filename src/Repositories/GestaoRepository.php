@@ -27,7 +27,7 @@ final class GestaoRepository
 
     public function produtos(): array
     {
-        return $this->pdo->query('SELECT id, codigo, nome, isbn, autor, categoria, preco_centavos, estoque, estoque_minimo, ativo FROM produtos ORDER BY nome')->fetchAll();
+        return $this->pdo->query('SELECT id, codigo, nome, isbn, autor, categoria, imagem_url, preco_centavos, estoque, estoque_minimo, ativo FROM produtos ORDER BY nome')->fetchAll();
     }
 
     public function produto(int $id): ?array

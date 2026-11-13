@@ -32,7 +32,8 @@ Não importe `schema.sql` sobre uma instalação existente. A migração de cat�
 ## Funcionalidades
 
 - Catálogo público de livros com preço, autor, categoria, ISBN e dados bibliográficos.
-- Consulta de metadados por ISBN no Google Books dentro da sessão da equipe; os dados são conferidos e gravados pela equipe.
+- Busca manual de livros por título, autor ou ISBN usando a [API Search do Open Library](https://openlibrary.org/dev/docs/api/search), dentro da sessão da equipe. A equipe confere os metadados, define preço e estoque e publica o livro no catálogo.
+- Capas retornadas pelo catálogo ou informadas por URL aparecem no painel e nas vitrines da loja; as capas públicas usam o [Covers API do Open Library](https://openlibrary.org/dev/docs/api/covers). O catálogo permite filtrar livros por título, autor, categoria, código ou ISBN.
 - Painel de gestão com indicadores do mês, livros ativos, estoque e alertas de estoque mínimo.
 - Cadastro e edição de livros, ativação/desativação de itens, entrada/saída de estoque, localização e trilha de movimentações vinculada à equipe.
 - Login administrativo com `password_hash`/`password_verify`, bloqueio temporário após tentativas inválidas, CSRF, cookies HttpOnly e autorização validada no servidor.
@@ -56,7 +57,7 @@ Para confirmação automática opcional do sandbox, defina `MP_TEST_WEBHOOK_SECR
 - Painel: `/admin.php`.
 - A loja conecta catálogo, carrinho e pagamento por atalhos no cabeçalho; o painel tem atalhos para acervo, estoque, vendas e contas da equipe.
 - O cadastro inicial em `/configurar_admin.php` só funciona em `localhost`/`127.0.0.1` enquanto não existir administrador.
-- Consulta Google Books por ISBN: disponível no formulário de cadastro autenticado.
+- Busca de livros por título, autor ou ISBN: disponível no painel autenticado, com preenchimento de metadados e prévia da capa; confira as informações antes de salvar.
 - CSV de vendas: `/exportar_vendas.php`, protegido por autenticação da equipe.
 
 O primeiro administrador é criado pelo script CLI. Leitores da loja não recebem acesso à equipe. A conta pública do catálogo não exige cadastro para navegação; compras de teste coletam apenas os dados necessários para o pedido.
@@ -77,6 +78,6 @@ O GitHub Pages não executa PHP nem fornece MySQL. Para testar a loja em navegad
 
 - O gateway externo está restrito ao ambiente de teste; não configura vendas reais.
 - O histórico de estoque registra entradas/saídas administrativas, reservas, vendas confirmadas e estornos; ajustes devem ser feitos no painel para preservar a auditoria.
-- Os metadados do Google Books podem estar incompletos; confira os campos antes de salvar.
+- Os metadados e capas do Open Library podem estar incompletos; confira os campos antes de salvar. A busca é manual, autenticada e limitada a uma consulta por segundo por sessão; não use como coleta em massa.
 - A área de pedidos é um resumo administrativo; não implementa emissão fiscal, logística ou processo de devolução.
 - Faça backup antes de cada migração e teste a instalação no seu próprio banco antes de publicar.

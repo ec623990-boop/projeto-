@@ -9,6 +9,7 @@ use BibliotecaVendas\Repositories\ProdutoRepository;
 use BibliotecaVendas\Repositories\SeniorSyncRepository;
 use BibliotecaVendas\Support\SimulacaoLocal;
 use BibliotecaVendas\Support\Seguranca;
+use BibliotecaVendas\Support\Texto;
 
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 session_start();
@@ -16,6 +17,7 @@ session_start();
 if (empty($_SESSION['chave_pedido'])) $_SESSION['chave_pedido'] = bin2hex(random_bytes(32));
 
 $erro = '';
+$buscaCatalogo = Texto::cortar(trim((string) ($_GET['q'] ?? '')), 0, 100);
 $pdo = null;
 $produtos = [];
 $carrinho = new CarrinhoDeCompras();
@@ -77,7 +79,7 @@ try {
         throw new DomainException('Operação não reconhecida.');
     }
 
-    $produtos = $produtoRepo->listarAtivos();
+    $produtos = $buscaCatalogo === '' ? $produtoRepo->listarAtivos() : $produtoRepo->buscarAtivos($buscaCatalogo);
     $idRecibo = filter_input(INPUT_GET, 'recibo', FILTER_VALIDATE_INT);
     if ($idRecibo) {
         $pedidoRecibo = $pedidoRepo->buscarRecibo($idRecibo);
@@ -183,27 +185,43 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
 
     <section class="secao" id="catalogo">
         <div class="secao-titulo"><div><p class="eyebrow">Catálogo</p><h2>Livros disponíveis</h2></div><p class="muted">Preços consultados no servidor.</p></div>
+        <form method="get" action="index.php#catalogo" class="catalogo-busca" role="search">
+            <label for="busca-catalogo">Buscar por título, autor, categoria ou ISBN</label>
+            <div class="catalogo-busca__linha">
+                <input id="busca-catalogo" type="search" name="q" maxlength="100" value="<?= Seguranca::escapar($buscaCatalogo) ?>" placeholder="Ex.: Machado de Assis ou ISBN">
+                <button class="botao" type="submit">Buscar livros</button>
+                <?php if ($buscaCatalogo !== ''): ?><a class="botao botao--claro" href="index.php#catalogo">Limpar</a><?php endif; ?>
+            </div>
+        </form>
         <?php if ($produtos === []): ?>
-            <div class="painel"><p>Nenhum produto disponível. Importe database/schema.sql para carregar os livros de demonstração.</p></div>
+            <div class="painel"><p><?= $buscaCatalogo !== '' ? 'Nenhum livro encontrado para essa busca.' : 'Nenhum produto disponível. Importe database/schema.sql para carregar os livros de demonstração.' ?></p></div>
         <?php else: ?>
             <div class="grade-produtos">
                 <?php foreach ($produtos as $produto): ?>
                     <article class="produto">
-                        <div class="produto__capa">📚</div>
+                        <?php if ($produto->imagemUrl()): ?>
+                            <div class="produto__capa"><img src="<?= Seguranca::escapar($produto->imagemUrl()) ?>" alt="Capa de <?= Seguranca::escapar($produto->nome()) ?>" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
+                        <?php else: ?>
+                            <div class="produto__capa produto__capa--vazia" aria-label="Capa não cadastrada">📚</div>
+                        <?php endif; ?>
                         <div><p class="codigo"><?= Seguranca::escapar($produto->codigo()) ?></p><h3><?= Seguranca::escapar($produto->nome()) ?></h3>
                             <?php if ($produto->autor()): ?><p class="muted"><?= Seguranca::escapar($produto->autor()) ?></p><?php endif; ?>
                             <?php if ($produto->categoria() || $produto->anoPublicacao()): ?><p class="muted"><?= Seguranca::escapar(implode(' · ', array_filter([$produto->categoria(), $produto->anoPublicacao() ? (string) $produto->anoPublicacao() : null]))) ?></p><?php endif; ?>
                             <p class="preco"><?= Seguranca::dinheiro($produto->precoCentavos()) ?></p>
                             <p class="muted">Estoque: <?= $produto->estoque() ?></p>
                         </div>
-                        <form method="post" class="form-adicionar">
-                            <input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>">
-                            <input type="hidden" name="acao" value="adicionar">
-                            <input type="hidden" name="produto_id" value="<?= $produto->id() ?>">
-                            <label class="sr-only" for="qtd-<?= $produto->id() ?>">Quantidade</label>
-                            <input id="qtd-<?= $produto->id() ?>" type="number" name="quantidade" min="1" max="<?= $produto->estoque() ?>" value="1" required>
-                            <button class="botao" type="submit">Adicionar</button>
-                        </form>
+                        <?php if ($produto->estoque() > 0): ?>
+                            <form method="post" class="form-adicionar">
+                                <input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>">
+                                <input type="hidden" name="acao" value="adicionar">
+                                <input type="hidden" name="produto_id" value="<?= $produto->id() ?>">
+                                <label class="sr-only" for="qtd-<?= $produto->id() ?>">Quantidade</label>
+                                <input id="qtd-<?= $produto->id() ?>" type="number" name="quantidade" min="1" max="<?= $produto->estoque() ?>" value="1" required>
+                                <button class="botao" type="submit">Adicionar</button>
+                            </form>
+                        <?php else: ?>
+                            <p class="status status--pendente">Indisponível no momento</p>
+                        <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
             </div>
