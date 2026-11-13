@@ -34,6 +34,8 @@ h3 { margin: 0 0 7px; font-size: 18px; }
 .catalogo-busca > label { color: var(--navy); font-weight: 700; }
 .catalogo-busca__linha { display: flex; align-items: center; gap: 8px; }
 .catalogo-busca__linha input { flex: 1; min-width: 0; }
+.catalogo-cadastro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.catalogo-cadastro p { margin: 0; }
 .busca-livros { margin: 18px 0; }
 .busca-livros__form { align-items: end; }
 .busca-livros__form .campo-largo { grid-column: auto; }
@@ -109,6 +111,7 @@ th { color: var(--muted); font-size: 13px; }
     .topo__conteudo, .secao-titulo { align-items: flex-start; flex-direction: column; }
     .loja-nav, .admin-links { width: 100%; }
     .catalogo-busca__linha { align-items: stretch; flex-direction: column; }
+    .catalogo-cadastro { align-items: stretch; flex-direction: column; }
     .livro-busca-item { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 10px; }
     .livro-busca-item__capa { width: 76px; height: 110px; }
     .painel { padding: 18px; }

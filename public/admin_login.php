@@ -10,7 +10,8 @@ use BibliotecaVendas\Support\SessaoWeb;
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 SessaoWeb::iniciar();
 header('Cache-Control: no-store');
-if (!empty($_SESSION['equipe_id'])) { header('Location: admin.php'); exit; }
+$destino = (($_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST['destino'] ?? '' : $_GET['destino'] ?? '') === 'buscar-livros') ? 'buscar-livros' : '';
+if (!empty($_SESSION['equipe_id'])) { header('Location: admin.php' . ($destino !== '' ? '#' . $destino : '')); exit; }
 $erro = '';
 $aviso = (string) ($_SESSION['aviso_login'] ?? '');
 unset($_SESSION['aviso_login']);
@@ -33,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['equipe_id'] = $auth['id'];
         $_SESSION['equipe_nome'] = $auth['nome'];
         $_SESSION['equipe_perfil'] = $auth['perfil'];
-        header('Location: admin.php'); exit;
+        header('Location: admin.php' . ($destino !== '' ? '#' . $destino : '')); exit;
     } catch (DomainException|InvalidArgumentException $e) {
         $erro = $e->getMessage();
     } catch (Throwable $e) {
@@ -47,6 +48,6 @@ $csrf = Seguranca::tokenCsrf();
 <body><main class="container admin-login"><section class="painel"><p class="eyebrow">Área restrita</p><h1>Entrar na gestão</h1>
 <?php if ($aviso !== ''): ?><div class="mensagem"><?= Seguranca::escapar($aviso) ?></div><?php endif; ?>
 <?php if ($erro !== ''): ?><div class="mensagem mensagem--erro"><?= Seguranca::escapar($erro) ?></div><?php endif; ?>
-<form method="post" class="campos"><input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>"><label>E-mail<input type="email" name="email" maxlength="190" autocomplete="username" required></label><label>Senha<input type="password" name="senha" autocomplete="current-password" required></label><button class="botao" type="submit">Entrar</button></form>
+<form method="post" class="campos"><input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>"><input type="hidden" name="destino" value="<?= Seguranca::escapar($destino) ?>"><label>E-mail<input type="email" name="email" maxlength="190" autocomplete="username" required></label><label>Senha<input type="password" name="senha" autocomplete="current-password" required></label><button class="botao" type="submit">Entrar</button></form>
 <?php if ($setupDisponivel): ?><p class="muted">Primeiro acesso? <a href="configurar_admin.php">Criar o primeiro administrador neste computador</a>.</p><?php endif; ?>
 <p class="muted"><a href="index.php">Voltar ao catálogo</a></p></section></main></body></html>

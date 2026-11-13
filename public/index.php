@@ -193,6 +193,10 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
                 <?php if ($buscaCatalogo !== ''): ?><a class="botao botao--claro" href="index.php#catalogo">Limpar</a><?php endif; ?>
             </div>
         </form>
+        <div class="catalogo-cadastro">
+            <p class="muted">É da equipe? Pesquise novos títulos e cadastre preço, estoque e capa para publicar na loja.</p>
+            <a class="botao" href="admin_login.php?destino=buscar-livros">Buscar e cadastrar livro</a>
+        </div>
         <?php if ($produtos === []): ?>
             <div class="painel"><p><?= $buscaCatalogo !== '' ? 'Nenhum livro encontrado para essa busca.' : 'Nenhum produto disponível. Importe database/schema.sql para carregar os livros de demonstração.' ?></p></div>
         <?php else: ?>
