@@ -14,7 +14,7 @@ final class ProdutoRepository
     public function listarAtivos(): array
     {
         $rows = $this->pdo->query(
-            'SELECT id, codigo, nome, preco_centavos, estoque FROM produtos WHERE ativo = 1 ORDER BY nome'
+            'SELECT * FROM produtos WHERE ativo = 1 ORDER BY nome'
         )->fetchAll();
         return array_map(fn (array $row): Produto => $this->mapear($row), $rows);
     }
@@ -22,7 +22,7 @@ final class ProdutoRepository
     public function buscarPorId(int $id): ?Produto
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, codigo, nome, preco_centavos, estoque FROM produtos WHERE id = ? AND ativo = 1'
+            'SELECT * FROM produtos WHERE id = ? AND ativo = 1'
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch();
@@ -37,7 +37,7 @@ final class ProdutoRepository
         if ($ids === []) return [];
         $marks = implode(',', array_fill(0, count($ids), '?'));
         $stmt = $this->pdo->prepare(
-            "SELECT id, codigo, nome, preco_centavos, estoque
+            "SELECT *
              FROM produtos WHERE ativo = 1 AND id IN ({$marks}) FOR UPDATE"
         );
         $stmt->execute(array_values($ids));
@@ -56,7 +56,16 @@ final class ProdutoRepository
             (string) $row['codigo'],
             (string) $row['nome'],
             (int) $row['preco_centavos'],
-            (int) $row['estoque']
+            (int) $row['estoque'],
+            $row['isbn'] ?? null,
+            $row['autor'] ?? null,
+            $row['editora'] ?? null,
+            $row['categoria'] ?? null,
+            isset($row['ano_publicacao']) ? (int) $row['ano_publicacao'] : null,
+            $row['descricao'] ?? null,
+            $row['imagem_url'] ?? null,
+            isset($row['estoque_minimo']) ? (int) $row['estoque_minimo'] : 2,
+            $row['localizacao'] ?? null
         );
     }
 }

@@ -45,11 +45,24 @@ final class PedidoRepository
     public function buscarPagamentoPorPedido(int $pedidoId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT provedor, identificador_externo, chave_idempotencia, valor_centavos,
-                    status, metodo_pagamento, status_detalhe
-             FROM pagamentos WHERE pedido_id = ? ORDER BY id DESC LIMIT 1'
+            'SELECT pg.provedor, pg.identificador_externo, pg.chave_idempotencia, pg.valor_centavos,
+                    pg.status, pg.metodo_pagamento, pg.status_detalhe, p.valor_total_centavos AS valor_pedido
+             FROM pagamentos pg JOIN pedidos p ON p.id = pg.pedido_id
+             WHERE pg.pedido_id = ? ORDER BY pg.id DESC LIMIT 1'
         );
         $stmt->execute([$pedidoId]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function buscarResumoPorPagamentoExterno(string $paymentId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT pg.pedido_id, pg.chave_idempotencia, p.valor_total_centavos
+             FROM pagamentos pg JOIN pedidos p ON p.id = pg.pedido_id
+             WHERE pg.identificador_externo = ? AND pg.provedor = \'mercado_pago\' LIMIT 1'
+        );
+        $stmt->execute([$paymentId]);
         $row = $stmt->fetch();
         return $row ?: null;
     }
