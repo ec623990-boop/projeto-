@@ -12,6 +12,17 @@ SessaoWeb::iniciar();
 header('Cache-Control: no-store');
 if (!empty($_SESSION['equipe_id'])) { header('Location: admin.php'); exit; }
 $erro = '';
+$aviso = (string) ($_SESSION['aviso_login'] ?? '');
+unset($_SESSION['aviso_login']);
+$setupDisponivel = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);
+if ($setupDisponivel) {
+    try {
+        $adminExiste = (int) Database::connect()->query("SELECT COUNT(*) FROM usuarios_equipe WHERE perfil = 'admin'")->fetchColumn() > 0;
+        $setupDisponivel = !$adminExiste;
+    } catch (Throwable $e) {
+        $setupDisponivel = true;
+    }
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         Seguranca::validarCsrf($_POST['csrf_token'] ?? null);
@@ -34,5 +45,8 @@ $csrf = Seguranca::tokenCsrf();
 ?>
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso da equipe</title><link rel="stylesheet" href="assets/app.css"></head>
 <body><main class="container admin-login"><section class="painel"><p class="eyebrow">Área restrita</p><h1>Entrar na gestão</h1>
+<?php if ($aviso !== ''): ?><div class="mensagem"><?= Seguranca::escapar($aviso) ?></div><?php endif; ?>
 <?php if ($erro !== ''): ?><div class="mensagem mensagem--erro"><?= Seguranca::escapar($erro) ?></div><?php endif; ?>
-<form method="post" class="campos"><input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>"><label>E-mail<input type="email" name="email" maxlength="190" autocomplete="username" required></label><label>Senha<input type="password" name="senha" autocomplete="current-password" required></label><button class="botao" type="submit">Entrar</button></form><p class="muted"><a href="index.php">Voltar ao catálogo</a></p></section></main></body></html>
+<form method="post" class="campos"><input type="hidden" name="csrf_token" value="<?= Seguranca::escapar($csrf) ?>"><label>E-mail<input type="email" name="email" maxlength="190" autocomplete="username" required></label><label>Senha<input type="password" name="senha" autocomplete="current-password" required></label><button class="botao" type="submit">Entrar</button></form>
+<?php if ($setupDisponivel): ?><p class="muted">Primeiro acesso? <a href="configurar_admin.php">Criar o primeiro administrador neste computador</a>.</p><?php endif; ?>
+<p class="muted"><a href="index.php">Voltar ao catálogo</a></p></section></main></body></html>

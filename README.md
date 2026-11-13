@@ -12,7 +12,7 @@ Aplicação web de livraria em PHP 8.1+, MySQL/InnoDB e um adaptador Java/Spring
 
 1. Inicie o MySQL e importe `database/schema.sql`. Ele cria o banco `biblioteca_vendas`, tabelas do catálogo, pedidos, pagamentos, contas da equipe e trilha de estoque.
 2. Copie `.env.example` para `.env` e configure a conexão local. Não publique `.env`, credenciais nem tokens.
-3. Crie o primeiro administrador no terminal, na raiz do projeto: `php scripts/criar_admin.php`. O script pergunta os dados; não passe a senha como argumento. Após criar a conta, remova ou proteja o script no servidor publicado.
+3. Crie o primeiro administrador pelo terminal, na raiz do projeto: `php scripts/criar_admin.php`. Como alternativa local, depois de iniciar a loja no passo seguinte, abra `http://127.0.0.1:8000/configurar_admin.php`; essa página só aceita conexões locais e se bloqueia depois que o primeiro administrador é criado. Não passe a senha como argumento do script CLI.
 4. Inicie a aplicação com `php -S 127.0.0.1:8000 -t public` e abra `http://127.0.0.1:8000`.
 5. Acesse a gestão em `http://127.0.0.1:8000/admin_login.php`.
 
@@ -54,6 +54,8 @@ Para confirmação automática opcional do sandbox, defina `MP_TEST_WEBHOOK_SECR
 
 - Login: `/admin_login.php`.
 - Painel: `/admin.php`.
+- A loja conecta catálogo, carrinho e pagamento por atalhos no cabeçalho; o painel tem atalhos para acervo, estoque, vendas e contas da equipe.
+- O cadastro inicial em `/configurar_admin.php` só funciona em `localhost`/`127.0.0.1` enquanto não existir administrador.
 - Consulta Google Books por ISBN: disponível no formulário de cadastro autenticado.
 - CSV de vendas: `/exportar_vendas.php`, protegido por autenticação da equipe.
 

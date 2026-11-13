@@ -24,7 +24,7 @@ public final class OrderMapper {
             Map<String, Object> mappedItem = new LinkedHashMap<>();
             mappedItem.put("sku", item.sku());
             mappedItem.put("price", money(item.precoUnitarioCentavos()));
-            mappedItem.put("quantity", item.quantity());
+            mappedItem.put("quantity", item.quantidade());
             mappedItem.put("total", money(item.subtotalCentavos()));
             mappedItem.put("discount", "0.00");
             mappedItem.put("itemNote", item.titulo());

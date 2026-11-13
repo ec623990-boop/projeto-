@@ -112,7 +112,12 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
 <header class="topo">
     <div class="container topo__conteudo">
         <div><p class="eyebrow">Projeto de orientação a objetos</p><h1>Livraria da Biblioteca</h1></div>
-        <a class="botao botao--claro" href="#carrinho">Carrinho (<?= count($itensCarrinho) ?>)</a>
+        <nav class="loja-nav" aria-label="Navegação da loja">
+            <a class="botao botao--claro" href="#catalogo">Livros disponíveis</a>
+            <a class="botao botao--claro" href="#carrinho">Carrinho (<?= count($itensCarrinho) ?>)</a>
+            <a class="botao botao--claro" href="#pagamento">Pagamento</a>
+            <a class="botao botao--claro" href="admin_login.php">Painel da equipe</a>
+        </nav>
     </div>
 </header>
 <main class="container">
@@ -176,7 +181,7 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
         </section>
     <?php endif; ?>
 
-    <section class="secao">
+    <section class="secao" id="catalogo">
         <div class="secao-titulo"><div><p class="eyebrow">Catálogo</p><h2>Livros disponíveis</h2></div><p class="muted">Preços consultados no servidor.</p></div>
         <?php if ($produtos === []): ?>
             <div class="painel"><p>Nenhum produto disponível. Importe database/schema.sql para carregar os livros de demonstração.</p></div>
@@ -208,7 +213,12 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
     <section class="secao painel" id="carrinho">
         <div class="secao-titulo"><div><p class="eyebrow">Composição de itens</p><h2>Carrinho de compras</h2></div><span class="muted"><?= count($itensCarrinho) ?> linha(s)</span></div>
         <?php if ($carrinho->estaVazio()): ?>
-            <p class="muted">Seu carrinho está vazio.</p>
+            <p class="muted">Seu carrinho está vazio. <a href="#catalogo">Escolha um livro para continuar.</a></p>
+            <section class="checkout checkout--vazio" id="pagamento" aria-labelledby="checkoutTitle">
+                <h3 id="checkoutTitle">Pagamento</h3>
+                <p class="muted">Adicione um livro ao carrinho para liberar as opções de pagamento.</p>
+                <a class="botao" href="#catalogo">Ver livros disponíveis</a>
+            </section>
         <?php else: ?>
             <div class="tabela-wrap">
                 <table>
@@ -232,7 +242,7 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
                 </table>
             </div>
             <div class="total"><span>Total do pedido</span><strong><?= Seguranca::dinheiro($carrinho->totalCentavos()) ?></strong></div>
-            <section class="checkout" aria-labelledby="checkoutTitle">
+            <section class="checkout" id="pagamento" aria-labelledby="checkoutTitle">
                 <h3 id="checkoutTitle">Pagamento de teste</h3>
                 <?php if ($paymentMode === 'simulado_local' && SimulacaoLocal::requisicaoLocal()): ?>
                     <?php if (!$paymentSchemaReady): ?>
