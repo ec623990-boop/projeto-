@@ -1,0 +1,46 @@
+name: Validar projeto
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: Sintaxe PHP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Preparar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql
+          coverage: none
+      - name: Verificar arquivos PHP
+        shell: bash
+        run: |
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+  senior-java:
+    name: Testes do adaptador Java
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integracao-senior-java
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Preparar Java 17 e Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: integracao-senior-java/pom.xml
+      - name: Compilar e executar testes
+        run: mvn --batch-mode --no-transfer-progress verify
