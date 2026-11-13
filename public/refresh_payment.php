@@ -77,7 +77,7 @@ try {
         unset($_SESSION['simulacao_pix_resultado'][(int) $orderId]);
     } elseif ($paymentRow['provedor'] === 'mercado_pago' && $mode === 'mercadopago_test') {
         $gateway = new MercadoPagoGateway();
-        $payment = $gateway->consultar((string) $paymentRow['identificador_externo'], (int) $orderId);
+        $payment = $gateway->consultar((string) $paymentRow['identificador_externo'], (int) $orderId, (int) $paymentRow['valor_pedido']);
         $service = new VendaService(
             $pdo,
             new ProdutoRepository($pdo),

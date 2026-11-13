@@ -186,6 +186,8 @@ if ($pdo instanceof PDO) $persistirCarrinho($carrinho);
                     <article class="produto">
                         <div class="produto__capa">📚</div>
                         <div><p class="codigo"><?= Seguranca::escapar($produto->codigo()) ?></p><h3><?= Seguranca::escapar($produto->nome()) ?></h3>
+                            <?php if ($produto->autor()): ?><p class="muted"><?= Seguranca::escapar($produto->autor()) ?></p><?php endif; ?>
+                            <?php if ($produto->categoria() || $produto->anoPublicacao()): ?><p class="muted"><?= Seguranca::escapar(implode(' · ', array_filter([$produto->categoria(), $produto->anoPublicacao() ? (string) $produto->anoPublicacao() : null]))) ?></p><?php endif; ?>
                             <p class="preco"><?= Seguranca::dinheiro($produto->precoCentavos()) ?></p>
                             <p class="muted">Estoque: <?= $produto->estoque() ?></p>
                         </div>
