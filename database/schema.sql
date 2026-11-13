@@ -8,12 +8,35 @@ CREATE TABLE IF NOT EXISTS produtos (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(40) NOT NULL UNIQUE,
     nome VARCHAR(160) NOT NULL,
+    isbn VARCHAR(20) NULL UNIQUE,
+    autor VARCHAR(180) NULL,
+    editora VARCHAR(140) NULL,
+    categoria VARCHAR(100) NULL,
+    ano_publicacao SMALLINT UNSIGNED NULL,
+    descricao TEXT NULL,
+    imagem_url VARCHAR(500) NULL,
     preco_centavos INT UNSIGNED NOT NULL,
+    custo_centavos INT UNSIGNED NULL,
     estoque INT UNSIGNED NOT NULL DEFAULT 0,
+    estoque_minimo INT UNSIGNED NOT NULL DEFAULT 2,
+    localizacao VARCHAR(80) NULL,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT chk_produtos_preco CHECK (preco_centavos > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS usuarios_equipe (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(160) NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    senha_hash VARCHAR(255) NOT NULL,
+    perfil ENUM('admin','equipe') NOT NULL DEFAULT 'equipe',
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    tentativas_login TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    bloqueado_ate DATETIME NULL,
+    ultimo_login_em DATETIME NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS clientes (
@@ -84,6 +107,26 @@ CREATE TABLE IF NOT EXISTS integracao_senior_pedidos (
     CONSTRAINT fk_senior_sync_pedido FOREIGN KEY (pedido_id)
         REFERENCES pedidos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     INDEX idx_senior_sync_status_data (status, atualizado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    produto_id BIGINT UNSIGNED NOT NULL,
+    equipe_id BIGINT UNSIGNED NULL,
+    pedido_id BIGINT UNSIGNED NULL,
+    tipo ENUM('entrada','saida','reserva_venda','venda','estorno_venda') NOT NULL,
+    quantidade INT UNSIGNED NOT NULL,
+    observacao VARCHAR(255) NULL,
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_mov_estoque_produto FOREIGN KEY (produto_id)
+        REFERENCES produtos(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_mov_estoque_equipe FOREIGN KEY (equipe_id)
+        REFERENCES usuarios_equipe(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_mov_estoque_pedido FOREIGN KEY (pedido_id)
+        REFERENCES pedidos(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT chk_mov_estoque_quantidade CHECK (quantidade > 0),
+    INDEX idx_mov_estoque_produto_data (produto_id, criado_em),
+    INDEX idx_mov_estoque_pedido (pedido_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO produtos (codigo, nome, preco_centavos, estoque)
